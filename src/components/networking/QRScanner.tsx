@@ -31,6 +31,45 @@ const QRScanner = ({ onScanSuccess, onScanError }: QRScannerProps) => {
   }, []);
 
   /**
+   * Check if camera access is supported
+   */
+  const checkCameraSupport = () => {
+    // Check if running in secure context (HTTPS or localhost)
+    if (!window.isSecureContext) {
+      throw new Error('Camera access requires HTTPS. Please use a secure connection.');
+    }
+
+    // Check if getUserMedia is supported
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('Camera access is not supported in this browser. Please try Chrome, Safari, or Firefox.');
+    }
+  };
+
+  /**
+   * Request camera permissions explicitly
+   */
+  const requestCameraPermission = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      // Stop the stream immediately - we just needed to request permission
+      stream.getTracks().forEach(track => track.stop());
+      return true;
+    } catch (err: any) {
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        throw new Error('Camera permission denied. Please allow camera access in your browser settings and try again.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        throw new Error('No camera found on this device.');
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        throw new Error('Camera is already in use by another application.');
+      } else {
+        throw new Error(`Camera access error: ${err.message || 'Unknown error'}`);
+      }
+    }
+  };
+
+  /**
    * Start camera scanning
    */
   const startCameraScanning = async () => {
@@ -38,6 +77,12 @@ const QRScanner = ({ onScanSuccess, onScanError }: QRScannerProps) => {
       setError(null);
       setIsScanning(true);
       setScanMode('camera');
+
+      // Check camera support
+      checkCameraSupport();
+
+      // Request camera permission first
+      await requestCameraPermission();
 
       // Initialize scanner
       const scanner = new Html5Qrcode('qr-reader');
@@ -211,6 +256,34 @@ const QRScanner = ({ onScanSuccess, onScanError }: QRScannerProps) => {
             <li>Ensure good lighting for best results</li>
             <li>Use upload option if camera doesn't work</li>
           </ul>
+        </div>
+
+        {/* Troubleshooting Guide */}
+        <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800 space-y-3">
+          <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">🔧 Camera Not Working?</p>
+          <div className="text-xs text-blue-800 dark:text-blue-200 space-y-2">
+            <p className="font-medium">For Chrome/Edge:</p>
+            <ol className="ml-4 space-y-1 list-decimal">
+              <li>Click the 🔒 or ⓘ icon in the address bar</li>
+              <li>Find "Camera" and set to "Allow"</li>
+              <li>Refresh the page and try again</li>
+            </ol>
+            
+            <p className="font-medium mt-2">For Safari (iPhone/iPad):</p>
+            <ol className="ml-4 space-y-1 list-decimal">
+              <li>Go to Settings → Safari → Camera</li>
+              <li>Select "Ask" or "Allow"</li>
+              <li>Return to the website and try again</li>
+            </ol>
+            
+            <p className="font-medium mt-2">Still not working?</p>
+            <ul className="ml-4 space-y-1 list-disc">
+              <li>Make sure you're using HTTPS (secure connection)</li>
+              <li>Close other apps using the camera</li>
+              <li>Try a different browser</li>
+              <li>Use the "Upload QR Code Image" option instead</li>
+            </ul>
+          </div>
         </div>
       </CardContent>
     </Card>
