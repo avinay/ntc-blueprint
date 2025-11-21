@@ -22,13 +22,33 @@ const QRScanner = ({ onScanSuccess, onScanError }: QRScannerProps) => {
   const [scanMode, setScanMode] = useState<'camera' | 'upload' | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isScanningRef = useRef(false); // Track scanning state
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      stopScanning();
+      cleanupScanner();
     };
   }, []);
+
+  /**
+   * Cleanup scanner instance
+   */
+  const cleanupScanner = async () => {
+    if (scannerRef.current) {
+      try {
+        const isCurrentlyScanning = await scannerRef.current.getState();
+        if (isCurrentlyScanning === 2) { // 2 = SCANNING state
+          await scannerRef.current.stop();
+        }
+        await scannerRef.current.clear();
+      } catch (err) {
+        console.debug('Scanner cleanup error (this is normal):', err);
+      }
+      scannerRef.current = null;
+    }
+    isScanningRef.current = false;
+  };
 
   /**
    * Check if camera access is supported
@@ -75,6 +95,15 @@ const QRScanner = ({ onScanSuccess, onScanError }: QRScannerProps) => {
   const startCameraScanning = async () => {
     try {
       setError(null);
+      
+      // Prevent multiple simultaneous scans
+      if (isScanningRef.current) {
+        console.log('Already scanning, stopping previous scan...');
+        await cleanupScanner();
+        // Wait a bit for cleanup
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
       setIsScanning(true);
       setScanMode('camera');
 
@@ -84,9 +113,13 @@ const QRScanner = ({ onScanSuccess, onScanError }: QRScannerProps) => {
       // Request camera permission first
       await requestCameraPermission();
 
-      // Initialize scanner
+      // Clean up any existing scanner
+      await cleanupScanner();
+
+      // Initialize new scanner
       const scanner = new Html5Qrcode('qr-reader');
       scannerRef.current = scanner;
+      isScanningRef.current = true;
 
       // Get camera devices
       const devices = await Html5Qrcode.getCameras();
@@ -97,7 +130,7 @@ const QRScanner = ({ onScanSuccess, onScanError }: QRScannerProps) => {
       // Prefer back camera on mobile
       const cameraId = devices.find(d => d.label.toLowerCase().includes('back'))?.id || devices[0].id;
 
-      // Start scanning
+      // Start scanning with better config
       await scanner.start(
         cameraId,
         {
@@ -105,23 +138,28 @@ const QRScanner = ({ onScanSuccess, onScanError }: QRScannerProps) => {
           qrbox: { width: 250, height: 250 },
           aspectRatio: 1.0,
         },
-        (decodedText) => {
+        async (decodedText) => {
           // Success callback
-          stopScanning();
+          console.log('QR Code detected:', decodedText);
+          await stopScanning();
           onScanSuccess(decodedText);
         },
         (errorMessage) => {
           // Error callback (not always a real error, just no QR detected)
           // We don't show these as they're too frequent
-          console.debug('QR scan error:', errorMessage);
+          console.debug('QR scan attempt:', errorMessage);
         }
       );
+      
+      console.log('Camera scanner started successfully');
     } catch (err: any) {
       console.error('Camera scanning error:', err);
       const errorMsg = err.message || 'Failed to access camera';
       setError(errorMsg);
       setIsScanning(false);
       setScanMode(null);
+      isScanningRef.current = false;
+      await cleanupScanner();
       if (onScanError) onScanError(errorMsg);
     }
   };
@@ -131,14 +169,17 @@ const QRScanner = ({ onScanSuccess, onScanError }: QRScannerProps) => {
    */
   const stopScanning = async () => {
     try {
-      if (scannerRef.current && scannerRef.current.isScanning) {
-        await scannerRef.current.stop();
-        await scannerRef.current.clear();
-      }
+      console.log('Stopping scanner...');
+      await cleanupScanner();
       setIsScanning(false);
       setScanMode(null);
+      console.log('Scanner stopped successfully');
     } catch (err) {
       console.error('Error stopping scanner:', err);
+      // Force reset state even if cleanup fails
+      setIsScanning(false);
+      setScanMode(null);
+      isScanningRef.current = false;
     }
   };
 
@@ -149,26 +190,39 @@ const QRScanner = ({ onScanSuccess, onScanError }: QRScannerProps) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    let fileScanner: Html5Qrcode | null = null;
+
     try {
       setError(null);
       setScanMode('upload');
 
-      const scanner = new Html5Qrcode('qr-reader-file');
-      const decodedText = await scanner.scanFile(file, true);
+      console.log('Scanning file:', file.name);
+      fileScanner = new Html5Qrcode('qr-reader-file');
+      const decodedText = await fileScanner.scanFile(file, true);
       
+      console.log('File scan successful:', decodedText);
       onScanSuccess(decodedText);
       setScanMode(null);
     } catch (err: any) {
       console.error('File scan error:', err);
-      const errorMsg = 'No valid QR code found in the image';
+      const errorMsg = 'No valid QR code found in the image. Please try a clearer image.';
       setError(errorMsg);
       setScanMode(null);
       if (onScanError) onScanError(errorMsg);
-    }
-
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    } finally {
+      // Cleanup file scanner
+      if (fileScanner) {
+        try {
+          await fileScanner.clear();
+        } catch (e) {
+          console.debug('File scanner cleanup (normal):', e);
+        }
+      }
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -228,10 +282,14 @@ const QRScanner = ({ onScanSuccess, onScanError }: QRScannerProps) => {
         {/* Camera Preview */}
         {isScanning && scanMode === 'camera' && (
           <div className="space-y-3">
-            <div 
-              id="qr-reader" 
-              className="rounded-lg overflow-hidden border-2 border-primary"
-            ></div>
+            <div className="bg-muted/30 p-4 rounded-lg space-y-3">
+              <p className="text-sm font-medium text-center text-primary">📷 Camera Active - Point at QR Code</p>
+              <div 
+                id="qr-reader" 
+                className="rounded-lg overflow-hidden border-2 border-primary shadow-lg"
+                style={{ minHeight: '300px' }}
+              ></div>
+            </div>
             <Button
               onClick={stopScanning}
               variant="destructive"
@@ -241,6 +299,15 @@ const QRScanner = ({ onScanSuccess, onScanError }: QRScannerProps) => {
               <X className="mr-2 h-5 w-5" />
               Stop Scanning
             </Button>
+          </div>
+        )}
+        
+        {/* Upload Processing */}
+        {scanMode === 'upload' && (
+          <div className="bg-muted/30 p-6 rounded-lg text-center">
+            <div className="animate-pulse text-primary text-sm font-medium">
+              Processing image...
+            </div>
           </div>
         )}
 
