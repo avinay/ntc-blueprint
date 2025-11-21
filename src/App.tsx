@@ -11,6 +11,11 @@ import Logistics from "./pages/Logistics";
 import Registration from "./pages/Registration";
 import Resources from "./pages/Resources";
 import NotFound from "./pages/NotFound";
+import Networking from "./pages/Networking";
+import CreateProfile from "./pages/networking/CreateProfile";
+import MyProfile from "./pages/networking/MyProfile";
+import ScanProfile from "./pages/networking/ScanProfile";
+import ContactList from "./pages/networking/ContactList";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +33,11 @@ const App = () => (
           <Route path="/logistics" element={<Logistics />} />
           <Route path="/registration" element={<Registration />} />
           <Route path="/resources" element={<Resources />} />
+          <Route path="/networking" element={<Networking />} />
+          <Route path="/networking/create-profile" element={<CreateProfile />} />
+          <Route path="/networking/my-profile" element={<MyProfile />} />
+          <Route path="/networking/scan" element={<ScanProfile />} />
+          <Route path="/networking/contacts" element={<ContactList />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
