@@ -17,45 +17,45 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Enterprise blue - deep authoritative primary */
-    --primary: 221 83% 20%;
+    /* Vibrant purple - energetic primary */
+    --primary: 270 70% 55%;
     --primary-foreground: 0 0% 100%;
     
-    /* Lighter blue for secondary actions */
-    --secondary: 217 33% 17%;
+    /* Electric blue for secondary actions */
+    --secondary: 220 90% 60%;
     --secondary-foreground: 0 0% 100%;
 
     /* Light background for cards */
-    --muted: 214 32% 95%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 270 20% 97%;
+    --muted-foreground: 270 10% 45%;
 
-    /* Teal accent for highlights and data viz */
-    --accent: 180 77% 40%;
-    --accent-foreground: 0 0% 100%;
+    /* Bright cyan accent for highlights */
+    --accent: 180 100% 50%;
+    --accent-foreground: 222 47% 11%;
     
-    /* Gold accent for premium elements */
-    --gold: 43 96% 56%;
-    --gold-foreground: 222 47% 11%;
+    /* Orange accent for CTAs */
+    --gold: 25 95% 60%;
+    --gold-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 88%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
+    --border: 270 20% 90%;
+    --input: 270 20% 95%;
+    --ring: 270 70% 55%;
 
-    --radius: 0.5rem;
+    --radius: 1rem;
     
-    /* Custom gradients for enterprise feel */
-    --gradient-hero: linear-gradient(135deg, hsl(221 83% 20%) 0%, hsl(222 47% 11%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(180 77% 40%) 0%, hsl(180 77% 30%) 100%);
-    --gradient-gold: linear-gradient(135deg, hsl(43 96% 56%) 0%, hsl(38 92% 50%) 100%);
+    /* Energetic gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(270 70% 55%) 0%, hsl(220 90% 60%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(180 100% 50%) 0%, hsl(270 70% 55%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(25 95% 60%) 0%, hsl(340 90% 60%) 100%);
     
-    /* Enterprise shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(221 83% 20% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(221 83% 20% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(221 83% 20% / 0.1);
-    --shadow-xl: 0 20px 25px -5px hsl(221 83% 20% / 0.15);
+    /* Vibrant shadows */
+    --shadow-sm: 0 2px 4px 0 hsl(270 70% 55% / 0.1);
+    --shadow-md: 0 4px 12px -1px hsl(270 70% 55% / 0.15);
+    --shadow-lg: 0 12px 24px -3px hsl(270 70% 55% / 0.2);
+    --shadow-xl: 0 24px 48px -5px hsl(270 70% 55% / 0.25);
   }
 
   .dark {
